@@ -1,4 +1,4 @@
-/**
+/*  *
  * Copyright 2015 IBM Corp. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +18,18 @@
 
 $(document).ready(function() {
 
+  $.getJSON("characters", function(jsonData){
+     var cb = '';
+     $.each(jsonData, function(i,data){
+         cb+='<option value="'+data.ID+'">'+data.NAME+'<option/>';
+     });
+     $("#character_select").html(cb);
+     $('#character_select option').filter(function() {
+        return !this.value || $.trim(this.value).length == 0;
+      })
+   .remove();
+  });
+
   var MIN_WORDS = 100;
 
   var widgetId = 'vizcontainer', // Must match the ID in index.jade
@@ -26,71 +38,36 @@ $(document).ready(function() {
     language = 'en'; // language selection
 
   // Jquery variables
-  var $content = $('.content'),
+  var $content = $('#character_select'),
     $loading   = $('.loading'),
     $error     = $('.error'),
     $errorMsg  = $('.errorMsg'),
     $traits    = $('.traits'),
-    $results   = $('.results'),
-    $captcha   = $('.captcha');
+    $results   = $('.results')
 
-  /**
-   * Clear the "textArea"
-   */
-  $('.clear-btn').click(function(){
-    $('.clear-btn').blur();
-    $content.val('');
-    updateWordsCount();
-  });
-
-  /**
-   * Update words count on change
-   */
-  $content.change(updateWordsCount);
-
-  /**
-   * Update words count on copy/past
-   */
-  $content.bind('paste', function() {
-    setTimeout(updateWordsCount, 100);
-  });
 
   /**
    * 1. Create the request
    * 2. Call the API
    * 3. Call the methods to display the results
    */
-  $('.analysis-btn').click(function(){
-    $('.analysis-btn').blur();
-
-    // check if the captcha is active and the user complete it
-    var recaptcha = grecaptcha.getResponse();
-
-    // reset the captcha
-    grecaptcha.reset();
-
-    if ($captcha.css('display') === 'table' && recaptcha === '')
-      return;
-
-
+  $('#character_select').change(function(){
     $loading.show();
-    $captcha.hide();
     $error.hide();
     $traits.hide();
     $results.hide();
-
+    console.log($content.val())
     $.ajax({
       type: 'POST',
       data: {
-        recaptcha: recaptcha,
         text: $content.val(),
         language: language
       },
       url: '/',
       dataType: 'json',
       success: function(response) {
+        response = jQuery.parseJSON( response )
         $loading.hide();
-
         if (response.error) {
           showError(response.error);
         } else {
@@ -110,7 +87,6 @@ $(document).ready(function() {
         } catch(e) {}
 
         if (xhr && xhr.status === 429){
-          $captcha.css('display','table');
           $('.errorMsg').css('color','black');
           error.error = 'Complete the captcha to proceed';
         } else {
